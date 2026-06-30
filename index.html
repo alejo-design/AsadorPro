@@ -204,6 +204,32 @@ gtag('config','G-3LT7ZXQTKP');
   .nav button{flex:1;background:none;border:none;color:var(--faint);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9.5px;font-weight:500;padding:3px 0;}
   .nav button.on{color:var(--fire);}
   .nav button svg{width:22px;height:22px;}
+
+  /* Guía: botón ayuda */
+  .help-btn{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:15px;font-weight:800;flex-shrink:0;font-family:var(--font);}
+  .help-btn:active{background:var(--surface2);}
+  /* Guía: pista contextual (coach) */
+  .coach{display:flex;align-items:flex-start;gap:9px;background:var(--fire-soft);border:1px solid #5A2E1C;border-radius:var(--radius-sm);padding:10px 12px;margin:6px 0 2px;}
+  .coach .ch-ic{flex-shrink:0;font-size:14px;line-height:1.4;}
+  .coach .ch-tx{font-size:12px;color:#F0C3AD;line-height:1.45;flex:1;}
+  .coach .ch-x{color:var(--faint);cursor:pointer;font-size:13px;flex-shrink:0;background:none;border:none;line-height:1.4;}
+  /* Guía: CTA siguiente paso */
+  .next-cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:var(--fire);color:#fff;border:none;border-radius:var(--radius-sm);padding:14px;font-size:14px;font-weight:700;cursor:pointer;margin-top:16px;font-family:var(--font);}
+  .next-cta:active{transform:scale(.99);}
+  /* Guía: onboarding */
+  .onboard{position:fixed;inset:0;background:rgba(10,8,6,.88);backdrop-filter:blur(6px);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .onboard.hidden{display:none;}
+  .ob-card{background:var(--bg);border:1px solid var(--line);border-radius:22px;width:100%;max-width:360px;padding:30px 24px;text-align:center;animation:obup .3s ease;}
+  @keyframes obup{from{transform:translateY(30px);opacity:0;}to{transform:none;opacity:1;}}
+  .ob-emoji{font-size:44px;margin-bottom:14px;}
+  .ob-title{font-size:20px;font-weight:800;margin-bottom:9px;letter-spacing:-.3px;}
+  .ob-text{font-size:14px;color:var(--muted);line-height:1.6;margin-bottom:22px;}
+  .ob-dots{display:flex;gap:6px;justify-content:center;margin-bottom:20px;}
+  .ob-dot{width:7px;height:7px;border-radius:50%;background:var(--line);transition:all .2s;}
+  .ob-dot.on{background:var(--fire);width:20px;border-radius:99px;}
+  .ob-btns{display:flex;gap:10px;}
+  .ob-skip{flex:1;background:transparent;border:1px solid var(--line);color:var(--muted);border-radius:var(--radius-sm);padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);}
+  .ob-next{flex:2;background:var(--fire);border:none;color:#fff;border-radius:var(--radius-sm);padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);}
 </style>
 </head>
 <body>
@@ -214,10 +240,12 @@ gtag('config','G-3LT7ZXQTKP');
       <div class="brand-name">AsadorPro</div>
       <div class="brand-sub" id="brand-sub">Tu asistente de parrilla</div>
     </div>
+    <button class="help-btn" onclick="openOnboard()" aria-label="Ayuda">?</button>
     <div class="loc" id="loc-pill"></div>
   </div>
 
   <div class="scroll" id="scroll">
+    <div class="coach" id="coach"><span class="ch-ic">💡</span><span class="ch-tx" id="coach-tx"></span><button class="ch-x" onclick="dismissCoach()">✕</button></div>
     <!-- PLANIFICAR -->
     <div class="screen active" id="s-plan">
       <div class="h-row"><h2 id="t-plan">El asado</h2></div>
@@ -240,6 +268,7 @@ gtag('config','G-3LT7ZXQTKP');
       <input class="search" id="csearch" placeholder="Buscar corte..." oninput="renderCortes()">
       <div id="clist"></div>
       <div class="count-note" id="ccount"></div>
+      <button class="next-cta" onclick="addToGrill()">Continuar — armar la parrilla →</button>
     </div>
 
     <!-- PARRILLA -->
@@ -325,6 +354,19 @@ gtag('config','G-3LT7ZXQTKP');
     <button data-s="lista" onclick="go('lista')"><span class="ic"></span><span>Lista</span></button>
     <button data-s="mar" onclick="go('mar')"><span class="ic"></span><span>Maridaje</span></button>
     <button data-s="mas" onclick="go('mas')"><span class="ic"></span><span>Más</span></button>
+  </div>
+
+  <div class="onboard hidden" id="onboard">
+    <div class="ob-card">
+      <div class="ob-emoji" id="ob-emoji">🔥</div>
+      <div class="ob-title" id="ob-title"></div>
+      <div class="ob-text" id="ob-text"></div>
+      <div class="ob-dots" id="ob-dots"></div>
+      <div class="ob-btns">
+        <button class="ob-skip" id="ob-skip" onclick="closeOnboard()">Saltar</button>
+        <button class="ob-next" id="ob-next" onclick="obNext()">Siguiente</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -645,9 +687,42 @@ function go(s){
  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.s===s));
  document.getElementById('scroll').scrollTop=0;
  if(s==='mas')closeSub();
+ updateCoach(s);
  track('pantalla',{seccion:s});
 }
 function geo(q){track('ver_locales',{busqueda:q});window.open('https://www.google.com/maps/search/'+encodeURIComponent(q+' cerca de '+REGIONS[region].loc),'_blank');}
+
+/* ---------- GUÍA / ONBOARDING ---------- */
+const OB=[
+ {e:'🔥',t:'Bienvenido a AsadorPro',x:'Te guiamos paso a paso para que tu asado salga perfecto — aunque sea tu primera vez.'},
+ {e:'👥',t:'1 · ¿Cuántos son?',x:'Cargá hombres, mujeres y niños. Calculamos cuánta carne comprar, sin que falte ni sobre.'},
+ {e:'🥩',t:'2 · Elegí los cortes',x:'Tocá los cortes que querés hacer. Cada uno trae su tiempo de cocción y los gramos por persona.'},
+ {e:'⏱️',t:'3 · A la parrilla',x:'Cada corte tiene su cronómetro. Dale play cuando lo ponés al fuego y te avisamos cuándo está listo.'},
+ {e:'🛒',t:'4 · Lista y maridaje',x:'Tu lista de compras se arma sola, con locales cerca. Y te sugerimos el vino ideal para lo que cocinás.'},
+];
+let obStep=0;
+function renderOb(){
+ const s=OB[obStep];
+ document.getElementById('ob-emoji').textContent=s.e;
+ document.getElementById('ob-title').textContent=s.t;
+ document.getElementById('ob-text').textContent=s.x;
+ document.getElementById('ob-dots').innerHTML=OB.map((_,i)=>'<span class="ob-dot'+(i===obStep?' on':'')+'"></span>').join('');
+ document.getElementById('ob-next').textContent=obStep===OB.length-1?'Empezar 🔥':'Siguiente';
+ document.getElementById('ob-skip').style.visibility=obStep===OB.length-1?'hidden':'visible';
+}
+function showOnboard(){obStep=0;renderOb();document.getElementById('onboard').classList.remove('hidden');}
+function openOnboard(){showOnboard();track('ayuda_abierta');}
+function obNext(){if(obStep<OB.length-1){obStep++;renderOb();}else closeOnboard();}
+function closeOnboard(){document.getElementById('onboard').classList.add('hidden');try{localStorage.setItem('asadorpro_ob','1');}catch(e){}}
+const COACH={
+ plan:'Cargá los comensales y tocá los cortes que querés hacer. Cuando termines, tocá "Continuar".',
+ parr:'Dale play a cada corte cuando lo ponés al fuego. El cronómetro te avisa cuándo sacarlo.',
+ lista:'Tu lista se arma sola con lo que elegiste. Tocá "Ver locales" para comprar cerca.',
+ mar:'Elegí qué vas a comer y tu presupuesto: te sugerimos el vino que combina.',
+ mas:'Notificaciones, idiomas/regiones e info de privacidad, todo en un lugar.',
+};
+function updateCoach(s){const c=document.getElementById('coach');if(!c)return;const tx=COACH[s];if(!tx){c.style.display='none';return;}document.getElementById('coach-tx').textContent=tx;c.style.display='flex';}
+function dismissCoach(){document.getElementById('coach').style.display='none';}
 
 /* ---------- INIT ---------- */
 function navIcons(){
@@ -671,6 +746,8 @@ function init(){
  document.getElementById('loc-pill').innerHTML=I.pin+' '+R.loc;document.querySelector('#loc-pill svg').style.width='13px';document.querySelector('#loc-pill svg').style.height='13px';
  navIcons();
  calc();renderCortes();renderLista();renderWines();renderGrill();
+ updateCoach('plan');
+ try{if(!localStorage.getItem('asadorpro_ob'))showOnboard();}catch(e){}
 }
 init();
 </script>
