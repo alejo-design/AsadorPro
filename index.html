@@ -4,6 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>AsadorPro — MVP</title>
+
+<!-- ============================================================
+     ANALÍTICA — PEGÁ ACÁ TUS IDs (2 minutos, gratis):
+     1) Microsoft Clarity → clarity.microsoft.com → crear proyecto →
+        copiá el "Project ID" y reemplazá  TU_CLARITY_ID  (más abajo).
+     2) Google Analytics 4 → analytics.google.com → crear propiedad web →
+        copiá el "Measurement ID" (empieza con G-) y reemplazá  G-XXXXXXXXXX
+        en los DOS lugares donde aparece.
+     Mientras estén los valores de ejemplo, no registran nada y NO rompen la app.
+     ============================================================ -->
+<!-- Microsoft Clarity (grabaciones de sesión + mapas de calor) -->
+<script type="text/javascript">
+(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","TU_CLARITY_ID");
+</script>
+<!-- Google Analytics 4 (visitantes en tiempo real + eventos) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+<script>
+window.dataLayer=window.dataLayer||[];
+function gtag(){dataLayer.push(arguments);}
+gtag('js',new Date());
+gtag('config','G-XXXXXXXXXX');
+</script>
+
 <style>
   :root{
     --bg:#15110D; --surface:#211913; --surface2:#2A211A; --line:#3A2E24;
@@ -453,6 +476,12 @@ const WINES=[
 const PAIRLABEL={rojo:'carne roja',achuras:'achuras',cerdo:'cerdo',pollo:'pollo',pescado:'pescado',veggie:'veggie'};
 const PAIRCOL={rojo:['#3A1E12','#E8A07F'],achuras:['#3A1E12','#E8A07F'],cerdo:['#3A1A26','#E89BB5'],pollo:['#332408','#E8C07A'],pescado:['#16283A','#7FB8E8'],veggie:['#11302A','#5DCAA5']};
 
+/* ---------- ANALÍTICA: helper de eventos ---------- */
+function track(name,params){
+ try{if(window.gtag)gtag('event',name,params||{});}catch(e){}
+ try{if(window.clarity)clarity('event',name);}catch(e){}
+}
+
 /* ---------- STATE ---------- */
 let region='ar';
 let guests={h:4,m:3,n:2};
@@ -500,7 +529,7 @@ function renderCortes(){
  document.getElementById('ccount').textContent=sel.size+' cortes en tu asado';
  document.querySelectorAll('.check svg').forEach(s=>{s.style.width='13px';s.style.height='13px';});
 }
-function tog(n){sel.has(n)?sel.delete(n):sel.add(n);renderCortes();renderLista();}
+function tog(n){const add=!sel.has(n);add?sel.add(n):sel.delete(n);if(add)track('corte_seleccionado',{corte:n});renderCortes();renderLista();}
 function esc(s){return s.replace(/'/g,"\\'");}
 
 /* ---------- PARRILLA ---------- */
@@ -532,7 +561,7 @@ function renderGrill(){
  document.querySelectorAll('.parr-name svg').forEach(s=>{s.style.width='13px';s.style.height='13px';});
  document.querySelectorAll('.reset svg').forEach(s=>{s.style.width='11px';s.style.height='11px';});
 }
-function toggle(i){const r=grill[i];if(r.run){clearInterval(r.iv);r.run=false;}else{r.run=true;r.iv=setInterval(()=>{r.el++;upd(i);},1000);}renderGrill();}
+function toggle(i){const r=grill[i];if(r.run){clearInterval(r.iv);r.run=false;}else{r.run=true;track('cronometro_iniciado',{corte:r.n});r.iv=setInterval(()=>{r.el++;upd(i);},1000);}renderGrill();}
 function upd(i){
  const r=grill[i],rem=r.total-r.el,mm=String(Math.floor(Math.abs(rem)/60)).padStart(2,'0'),ss=String(Math.abs(rem)%60).padStart(2,'0'),sg=rem<0?'-':'';
  const el=document.getElementById('t-'+i);if(!el)return;
@@ -597,7 +626,7 @@ function renderRegions(){
  document.querySelectorAll('.region-check svg').forEach(s=>{s.style.width='18px';s.style.height='18px';});
 }
 function setRegion(k){
- region=k;const R=REGIONS[k];
+ region=k;const R=REGIONS[k];track('region_cambiada',{region:k});
  sel=new Set([R.cuts[0].n, (R.cuts.find(c=>c.veg)||R.cuts[1]).n]);
  grill.forEach(g=>clearInterval(g.iv));grill=[];checked=new Set();filter='all';
  document.getElementById('brand-sub').textContent=R.sub;
@@ -616,8 +645,9 @@ function go(s){
  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.s===s));
  document.getElementById('scroll').scrollTop=0;
  if(s==='mas')closeSub();
+ track('pantalla',{seccion:s});
 }
-function geo(q){window.open('https://www.google.com/maps/search/'+encodeURIComponent(q+' cerca de '+REGIONS[region].loc),'_blank');}
+function geo(q){track('ver_locales',{busqueda:q});window.open('https://www.google.com/maps/search/'+encodeURIComponent(q+' cerca de '+REGIONS[region].loc),'_blank');}
 
 /* ---------- INIT ---------- */
 function navIcons(){
